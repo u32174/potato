@@ -17,7 +17,7 @@ import random
 
 random_state = None
 green_text_code = "\033[32m"
-reset_color_code = "033[0m"
+reset_color_code = "\033[0m"
 
 
 class PbnGen:
@@ -820,7 +820,7 @@ class PbnGen:
         img = cv2.rectangle(img, (0, 0), (img.shape[1], img.shape[0]), (0, 0, 0), 10)
         self.setImage(img)
 
-    def output_to_svg(self, svg_path: str, output_palette_path: str = None):
+    def output_to_svg(self, svg_path: str, fill_color: bool , output_palette_path: str = None, ):
         """
         Gets a boundary image between colors in a PBN template by running an edge filter on the provided image or self.image.
         Upscaling the image before passing it to this function gives better resolution.
@@ -861,8 +861,7 @@ class PbnGen:
                 if len(c.squeeze().shape) == 1:
                     points = [points]
 
-                fill = "white"
-                # fill = "rgb" + str(color)
+                fill = "rgb" + str(color) if fill_color else "white"
                 group = dwg.g(fill=fill, stroke="black", id=str(i))
                 shape = dwg.polygon(points)
 
@@ -946,8 +945,16 @@ def open_file_in_windows(image):
 
 def main():
     input_image = input("Введите путь к изображению: ")
+
     if not os.path.isfile(input_image ):
         print(f"Изображение \"{input_image}\" не найдено")
+        exit(1)
+
+    num_colors_str = input("Введите количество цветов: ")
+    try:
+        num_colors = int(num_colors_str)
+    except Exception:
+        print("Не корректное число")
         exit(1)
 
     dir_name = os.path.dirname(input_image)
@@ -958,21 +965,21 @@ def main():
 
         #pruningThreshold : Минимальный процент площади изображения, который может занимать цветовой кластер, прежде чем он будет поглощен окружающими цветами
         # по умолчанию это 6.25e-5. можно поиграться с этим значением, чтобы не было слишком маленьких областей
-        pbn = PbnGen(input_image, min_num_colors=4, num_colors=4, pruningThreshold=6e-4)
+        pbn = PbnGen(input_image, min_num_colors=4, num_colors=num_colors, pruningThreshold=6e-4)
         pbn.set_final_pbn()
 
-        svg_path = os.path.join(dir_name, "pbn.svg")
+        blank_svg_path = os.path.join(dir_name, "pbn_blank.svg")
+        color_svg_path = os.path.join(dir_name, "pbn_color.svg")
         palette_path = os.path.join(dir_name, "pbnPalette.html")
 
-        palette = pbn.output_to_svg(
-            svg_path, os.path.join(dir_name, "pbn.json")
-       )
-
+        palette = pbn.output_to_svg(blank_svg_path, fill_color=False)
+        pbn.output_to_svg(color_svg_path, fill_color=True)
         generate_html_color_table(palette,palette_path )
 
-
-        print(f"Изображение сохранено по пути: {green_text_code}{svg_path}{reset_color_code}")
-        open_file_in_windows(svg_path)
+        print(f"Белое изображение сохранено по пути: {green_text_code}{blank_svg_path}{reset_color_code}")
+        print(f"Закрашенное изображение сохранено по пути: {green_text_code}{color_svg_path}{reset_color_code}")
+        open_file_in_windows(blank_svg_path)
+        open_file_in_windows(color_svg_path)
         open_file_in_windows(palette_path)
 
     except Exception as e:
@@ -989,6 +996,11 @@ def generate_html_color_table(color_data, output_file):
         color_data (list): List of dictionaries containing 'color' and 'shapes' keys
         output_file (str): Name of the output HTML file
     """
+    color_data = color_data[1:]
+    print(color_data)
+    sorted_data = sorted(color_data, key=lambda x: len(x['shapes']), reverse=True)
+    print(sorted_data)
+
     html = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1005,8 +1017,6 @@ def generate_html_color_table(color_data, output_file):
         }
         table {
             border-collapse: collapse;
-            width: 100%;
-            max-width: 600px;
             margin: 20px 0;
         }
         th, td {
@@ -1031,19 +1041,17 @@ def generate_html_color_table(color_data, output_file):
     <table>
         <thead>
             <tr>
-                <th>Color</th>
-                <th>Area Numbers</th>
+                <th>№</th>
+                <th>Цвет</th>
             </tr>
         </thead>
         <tbody>
 """
-
-    for item in color_data:
+    for i,item in enumerate(sorted_data):
         color = item['color']
-        shapes = ", ".join(item['shapes'])
         html += f"""            <tr>
+                <td class="numbers-cell">{i+1}</td>
                 <td class="color-cell" style="background-color: rgb{color};"></td>
-                <td class="numbers-cell">{shapes}</td>
             </tr>
 """
 
