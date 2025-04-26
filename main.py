@@ -1,6 +1,8 @@
 import sys
 import os
 import subprocess
+from contextlib import nullcontext
+
 import cv2
 from collections import Counter
 import numpy as np
@@ -14,10 +16,6 @@ import json
 import random
 
 random_state = None
-
-# чтобы установить все зависимости разом надо выполнить эти две команды ↓. Вместо 'C:\projectPath\' ввести путь к этому файлу
-#1. cd 'C:\projectPath\'
-#2. pip install -r requirements.txt
 
 class PbnGen:
     def __init__(
@@ -944,14 +942,20 @@ def open_image(image):
         print(e)
 
 def main():
-    if not len(sys.argv) == 2:
-        print("Error: No input image provided")
+    input_image = input("Введите путь к изображению: ")
+    if not os.path.isfile(input_image ):
+        print(f"Изображение \"{input_image}\" не найдено")
         exit(1)
 
-    input_image = sys.argv[1]
     dir_name = os.path.dirname(input_image)
+
     try:
-        pbn = PbnGen(input_image,num_colors=10, pruningThreshold=9e-4)
+        #min_num_colors : минимальное количество цветов, которое выделит алгоритм
+        #num_colors : количество цветов, на которое алгоритм постарается разбить картинку
+
+        #pruningThreshold : Минимальный процент площади изображения, который может занимать цветовой кластер, прежде чем он будет поглощен окружающими цветами
+        # по умолчанию это 6.25e-5. можно поиграться с этим значением, чтобы не было слишком маленьких областей
+        pbn = PbnGen(input_image, min_num_colors=10, num_colors=10, pruningThreshold=6e-4)
         pbn.set_final_pbn()
 
         svg_path = os.path.join(dir_name, "pbn.svg")
@@ -960,6 +964,10 @@ def main():
             svg_path, os.path.join(dir_name, "pbn.json")
         )
 
+        green_text_code = "\033[32m"
+        reset_color_code = "\033[0m"
+
+        print(f"Изображение сохранено по пути: {green_text_code}{svg_path}{reset_color_code}")
         open_image(svg_path)
 
     except Exception as e:
