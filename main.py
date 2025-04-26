@@ -954,7 +954,7 @@ def main():
     try:
         num_colors = int(num_colors_str)
     except Exception:
-        print("Не корректное число")
+        print("Некорректное число")
         exit(1)
 
     dir_name = os.path.dirname(input_image)
@@ -965,6 +965,7 @@ def main():
 
         #pruningThreshold : Минимальный процент площади изображения, который может занимать цветовой кластер, прежде чем он будет поглощен окружающими цветами
         # по умолчанию это 6.25e-5. можно поиграться с этим значением, чтобы не было слишком маленьких областей
+
         pbn = PbnGen(input_image, min_num_colors=4, num_colors=num_colors, pruningThreshold=6e-4)
         pbn.set_final_pbn()
 
@@ -978,6 +979,7 @@ def main():
 
         print(f"Белое изображение сохранено по пути: {green_text_code}{blank_svg_path}{reset_color_code}")
         print(f"Закрашенное изображение сохранено по пути: {green_text_code}{color_svg_path}{reset_color_code}")
+
         open_file_in_windows(blank_svg_path)
         open_file_in_windows(color_svg_path)
         open_file_in_windows(palette_path)
@@ -997,9 +999,7 @@ def generate_html_color_table(color_data, output_file):
         output_file (str): Name of the output HTML file
     """
     color_data = color_data[1:]
-    print(color_data)
     sorted_data = sorted(color_data, key=lambda x: len(x['shapes']), reverse=True)
-    print(sorted_data)
 
     html = """<!DOCTYPE html>
 <html lang="en">
