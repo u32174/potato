@@ -16,6 +16,9 @@ import json
 import random
 
 random_state = None
+green_text_code = "\033[32m"
+reset_color_code = "033[0m"
+
 
 class PbnGen:
     def __init__(
@@ -934,7 +937,7 @@ class PbnGen:
         return text
         # dwg.add(text)
 
-def open_image(image):
+def open_file_in_windows(image):
     #открывает изображение в дефолтном просмотрщике
     try:
         subprocess.run(['start',image],shell=True)
@@ -955,25 +958,103 @@ def main():
 
         #pruningThreshold : Минимальный процент площади изображения, который может занимать цветовой кластер, прежде чем он будет поглощен окружающими цветами
         # по умолчанию это 6.25e-5. можно поиграться с этим значением, чтобы не было слишком маленьких областей
-        pbn = PbnGen(input_image, min_num_colors=10, num_colors=10, pruningThreshold=6e-4)
+        pbn = PbnGen(input_image, min_num_colors=4, num_colors=4, pruningThreshold=6e-4)
         pbn.set_final_pbn()
 
         svg_path = os.path.join(dir_name, "pbn.svg")
+        palette_path = os.path.join(dir_name, "pbnPalette.html")
 
-        pbn.output_to_svg(
+        palette = pbn.output_to_svg(
             svg_path, os.path.join(dir_name, "pbn.json")
-        )
+       )
 
-        green_text_code = "\033[32m"
-        reset_color_code = "\033[0m"
+        generate_html_color_table(palette,palette_path )
+
 
         print(f"Изображение сохранено по пути: {green_text_code}{svg_path}{reset_color_code}")
-        open_image(svg_path)
+        open_file_in_windows(svg_path)
+        open_file_in_windows(palette_path)
 
     except Exception as e:
         print("error generating PBN - make sure the image exists")
         print(e)
         exit(1)
+
+
+def generate_html_color_table(color_data, output_file):
+    """
+    Generates an HTML file with a table showing colors and their corresponding area numbers.
+
+    Args:
+        color_data (list): List of dictionaries containing 'color' and 'shapes' keys
+        output_file (str): Name of the output HTML file
+    """
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Таблица цветов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 600px;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .color-cell {
+            width: 100px;
+            height: 30px;
+        }
+        .numbers-cell {
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Таблица цветов</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Color</th>
+                <th>Area Numbers</th>
+            </tr>
+        </thead>
+        <tbody>
+"""
+
+    for item in color_data:
+        color = item['color']
+        shapes = ", ".join(item['shapes'])
+        html += f"""            <tr>
+                <td class="color-cell" style="background-color: rgb{color};"></td>
+                <td class="numbers-cell">{shapes}</td>
+            </tr>
+"""
+
+    html += """        </tbody>
+    </table>
+</body>
+</html>"""
+
+    with open(output_file, 'w', encoding="utf-8") as f:
+        f.write(html)
+    print(f"Палитра сгенерирована: {green_text_code}{output_file}{reset_color_code}")
 
 
 if __name__ == "__main__":
