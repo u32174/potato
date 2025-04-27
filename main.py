@@ -999,7 +999,6 @@ def generate_html_color_table(color_data, output_file):
         output_file (str): Name of the output HTML file
     """
     color_data = color_data[1:]
-    sorted_data = sorted(color_data, key=lambda x: len(x['shapes']), reverse=True)
 
     html = """<!DOCTYPE html>
 <html lang="en">
@@ -1047,7 +1046,7 @@ def generate_html_color_table(color_data, output_file):
         </thead>
         <tbody>
 """
-    for i,item in enumerate(sorted_data):
+    for i,item in enumerate(color_data):
         color = item['color']
         html += f"""            <tr>
                 <td class="numbers-cell">{i+1}</td>
