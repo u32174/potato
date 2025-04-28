@@ -17,9 +17,6 @@ import json
 import random
 
 random_state = None
-green_text_code = "\033[32m"
-reset_color_code = "\033[0m"
-
 
 class PbnGen:
     def __init__(
@@ -871,9 +868,8 @@ class PbnGen:
 
                 group.add(shape)
 
-                if not fill_color:
-                    text = self.add_text_label(dwg, c, str(idx))
-                    group.add(text)
+                text = self.add_text_label(dwg, c, str(idx))
+                group.add(text)
 
                 dwg.add(group)
 
@@ -952,10 +948,10 @@ class Config:
     def __repr__(self):
         text = (
             "====================\n"
-            f"imagePath = {green_text_code}{self.input_image}{reset_color_code}\n"
-            f"minColors = {green_text_code}{self.min_colors}{reset_color_code}\n"
-            f"colors    = {green_text_code}{self.num_colors}{reset_color_code}\n"
-            f"minArea   = {green_text_code}{self.min_area}{reset_color_code}\n"
+            f"imagePath = {self.input_image}\n"
+            f"minColors = {self.min_colors}\n"
+            f"colors    = {self.num_colors}\n"
+            f"minArea   = {self.min_area}\n"
             "====================\n"
         )
         return text
@@ -1042,8 +1038,8 @@ def main():
         pbn.output_to_svg(color_svg_path, fill_color=True)
         generate_html_color_table(palette, palette_path)
 
-        print(f"Белое изображение сохранено по пути: {green_text_code}{blank_svg_path}{reset_color_code}")
-        print(f"Закрашенное изображение сохранено по пути: {green_text_code}{color_svg_path}{reset_color_code}")
+        print(f"Белое изображение сохранено по пути: {blank_svg_path}")
+        print(f"Закрашенное изображение сохранено по пути: {color_svg_path}")
 
         open_file_in_windows(blank_svg_path)
         open_file_in_windows(color_svg_path)
@@ -1052,6 +1048,7 @@ def main():
     except Exception as e:
         print("error generating PBN - make sure the image exists")
         print(e)
+        input()
         exit(1)
 
 
@@ -1126,7 +1123,7 @@ def generate_html_color_table(color_data, output_file):
 
     with open(output_file, 'w', encoding="utf-8") as f:
         f.write(html)
-    print(f"Палитра сгенерирована: {green_text_code}{output_file}{reset_color_code}")
+    print(f"Палитра сгенерирована: {output_file}")
 
 
 if __name__ == "__main__":
