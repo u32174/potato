@@ -1,4 +1,5 @@
 import sys
+import json
 import os
 import subprocess
 from contextlib import nullcontext
@@ -22,7 +23,7 @@ reset_color_code = "\033[0m"
 
 class PbnGen:
     def __init__(
-        self, f_name, num_colors=None, min_num_colors=10, pruningThreshold=6.25e-5
+            self, f_name, num_colors=None, min_num_colors=10, pruningThreshold=6.25e-5
     ):
         bgr_image = cv2.imread(f_name)
         # change to RGB
@@ -206,7 +207,7 @@ class PbnGen:
         return H * W
 
     def resizeImage(
-        self, image=None, scale: float = 1, dimension: tuple = None
+            self, image=None, scale: float = 1, dimension: tuple = None
     ) -> None:
         """
         Return a resized version of the provided image or self.image if image=None.
@@ -238,7 +239,7 @@ class PbnGen:
 
             # If upsampling, use INTER_NEAREST, otherwise, use INTER_AREA. We want to use INTER_NEAREST for upsampling to preserve the number of colors
             if (
-                NH * NW >= H * W
+                    NH * NW >= H * W
             ):  # This is a crude estimate for up vs downsampling, but it works well enough
                 resized = cv2.resize(img, (NW, NH), interpolation=cv2.INTER_NEAREST)
             else:
@@ -267,12 +268,12 @@ class PbnGen:
         self.setImage(resized)
 
     def blurImage_(
-        self,
-        blurType: str,
-        ksize: int = 13,
-        sigma: float = 3,
-        sigmaColor: float = 21,
-        sigmaSpace: float = 21,
+            self,
+            blurType: str,
+            ksize: int = 13,
+            sigma: float = 3,
+            sigmaColor: float = 21,
+            sigmaSpace: float = 21,
     ) -> None:
         """
         Blurs the current image in place according to the arguments of the function.
@@ -415,7 +416,7 @@ class PbnGen:
         self.prunableClusters = prunableClusters
 
     def getClusteringEffectiveness(
-        self,
+            self,
     ) -> "tuple[dict, dict, dict, dict, int, int, float]":
         """
         Returns stats about the effectiveness of cluster pruning by comparing raw cluster counts to theoretical pruned ones
@@ -533,7 +534,7 @@ class PbnGen:
         return np.array(mostCommonColor, dtype=np.uint8)
 
     def getMainSurroundingColorVectorized(
-        self, image, mask, uniqueLabels
+            self, image, mask, uniqueLabels
     ) -> np.ndarray:
         """
         Returns the main surrounding colors given a labeled mask and image. The function will check the edges of the mask to determine the present colors
@@ -566,12 +567,12 @@ class PbnGen:
 
     # TODO: If time allows, re-write this to merge similar intensities along strong gradients to preserve things like the whiskers in the Red Panda image
     def pruneClustersSmart(
-        self,
-        iterations: int = 3,
-        pruneBySize=False,
-        reversePruneBySize=False,
-        reversePruneByIntensity=True,
-        showPlots=False,
+            self,
+            iterations: int = 3,
+            pruneBySize=False,
+            reversePruneBySize=False,
+            reversePruneByIntensity=True,
+            showPlots=False,
     ):
         """
         Prunes small color clusters in order of cluster size and color intensity. The pruned clusters are based on the self.pruningThreshold class variable
@@ -689,7 +690,7 @@ class PbnGen:
             )
 
         for i in range(iterations):
-            print(f"{i+1} ", end="")
+            print(f"{i + 1} ", end="")
 
             image = self.image.copy().astype(np.int32)
             # print('Starting generatePrunableClusters()')
@@ -708,8 +709,8 @@ class PbnGen:
                 color = np.array(color, dtype=np.uint8)
 
                 uniqueLabels = np.unique(labelMask)[
-                    1:
-                ]  # Exclude the first label which refers to the background
+                               1:
+                               ]  # Exclude the first label which refers to the background
 
                 # If no unique labels are detected, continue to the next color
                 if uniqueLabels.shape[0] == 0:
@@ -772,7 +773,7 @@ class PbnGen:
         print("\nDone!")
 
     def getBoundaryImage(
-        self, image: np.ndarray = None, scale: float = 1
+            self, image: np.ndarray = None, scale: float = 1
     ) -> np.ndarray:
         """
         Gets a boundary image between colors in a PBN template by running an edge filter on the provided image or self.image.
@@ -820,7 +821,7 @@ class PbnGen:
         img = cv2.rectangle(img, (0, 0), (img.shape[1], img.shape[0]), (0, 0, 0), 10)
         self.setImage(img)
 
-    def output_to_svg(self, svg_path: str, fill_color: bool , output_palette_path: str = None, ):
+    def output_to_svg(self, svg_path: str, fill_color: bool, output_palette_path: str = None, ):
         """
         Gets a boundary image between colors in a PBN template by running an edge filter on the provided image or self.image.
         Upscaling the image before passing it to this function gives better resolution.
@@ -866,10 +867,14 @@ class PbnGen:
                 shape = dwg.polygon(points)
 
                 # add text label
-                text = self.add_text_label(dwg, c, str(idx))
+                # text = self.add_text_label(dwg, c, str(idx))
 
                 group.add(shape)
-                group.add(text)
+
+                if not fill_color:
+                    text = self.add_text_label(dwg, c, str(idx))
+                    group.add(text)
+
                 dwg.add(group)
 
                 data["shapes"].append(str(i))
@@ -936,37 +941,97 @@ class PbnGen:
         return text
         # dwg.add(text)
 
+
+class Config:
+    def __init__(self, input_image: str, min_colors: int, num_colors: int, min_area: float):
+        self.input_image = input_image
+        self.min_colors = min_colors
+        self.num_colors = num_colors
+        self.min_area = min_area
+
+    def __repr__(self):
+        text = (
+            "====================\n"
+            f"imagePath = {green_text_code}{self.input_image}{reset_color_code}\n"
+            f"minColors = {green_text_code}{self.min_colors}{reset_color_code}\n"
+            f"colors    = {green_text_code}{self.num_colors}{reset_color_code}\n"
+            f"minArea   = {green_text_code}{self.min_area}{reset_color_code}\n"
+            "====================\n"
+        )
+        return text
+
+
 def open_file_in_windows(image):
-    #открывает изображение в дефолтном просмотрщике
+    # открывает изображение в дефолтном просмотрщике
     try:
-        subprocess.run(['start',image],shell=True)
+        subprocess.run(['start', image], shell=True)
     except Exception as e:
         print(e)
 
-def main():
-    input_image = input("Введите путь к изображению: ")
 
-    if not os.path.isfile(input_image ):
+def get_config_from_file(file_path):
+    """
+    формат конфига
+    {
+        "input_image": "C:\\image\\path.jpg",
+        "min_colors": "4",
+        "num_colors": "10",
+        "min_area": "0.0004"
+    }
+    """
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+            result = Config(
+                input_image=data.get('input_image'),
+                min_colors=int(data.get('min_colors')),
+                num_colors=int(data.get('num_colors')),
+                min_area=float(data.get('min_area'))
+            )
+            print(result)
+            return result
+    except FileNotFoundError:
+        return None
+    except json.JSONDecodeError:
+        print(f"Error: The file '{file_path}' contains invalid JSON.")
+        return None
+
+
+def get_config_from_prompt():
+    input_image = input("Введите путь к изображению: ")
+    if not os.path.isfile(input_image):
         print(f"Изображение \"{input_image}\" не найдено")
         exit(1)
 
     num_colors_str = input("Введите количество цветов: ")
+
     try:
         num_colors = int(num_colors_str)
     except Exception:
         print("Некорректное число")
         exit(1)
 
-    dir_name = os.path.dirname(input_image)
+    config = Config(input_image=input_image, min_colors=4, num_colors=num_colors, min_area=6e-4)
+    return config
+
+
+def main():
+    config = get_config_from_file("config.json")
+
+    if config is None:
+        config = get_config_from_prompt()
+
+    dir_name = os.path.dirname(config.input_image)
 
     try:
-        #min_num_colors : минимальное количество цветов, которое выделит алгоритм
-        #num_colors : количество цветов, на которое алгоритм постарается разбить картинку
+        # min_num_colors : минимальное количество цветов, которое выделит алгоритм
+        # num_colors : количество цветов, на которое алгоритм постарается разбить картинку
 
-        #pruningThreshold : Минимальный процент площади изображения, который может занимать цветовой кластер, прежде чем он будет поглощен окружающими цветами
+        # pruningThreshold : Минимальный процент площади изображения, который может занимать цветовой кластер, прежде чем он будет поглощен окружающими цветами
         # по умолчанию это 6.25e-5. можно поиграться с этим значением, чтобы не было слишком маленьких областей
 
-        pbn = PbnGen(input_image, min_num_colors=4, num_colors=num_colors, pruningThreshold=6e-4)
+        pbn = PbnGen(config.input_image, min_num_colors=4, num_colors=config.num_colors,
+                     pruningThreshold=config.min_area)
         pbn.set_final_pbn()
 
         blank_svg_path = os.path.join(dir_name, "pbn_blank.svg")
@@ -975,7 +1040,7 @@ def main():
 
         palette = pbn.output_to_svg(blank_svg_path, fill_color=False)
         pbn.output_to_svg(color_svg_path, fill_color=True)
-        generate_html_color_table(palette,palette_path )
+        generate_html_color_table(palette, palette_path)
 
         print(f"Белое изображение сохранено по пути: {green_text_code}{blank_svg_path}{reset_color_code}")
         print(f"Закрашенное изображение сохранено по пути: {green_text_code}{color_svg_path}{reset_color_code}")
@@ -1046,10 +1111,10 @@ def generate_html_color_table(color_data, output_file):
         </thead>
         <tbody>
 """
-    for i,item in enumerate(color_data):
+    for i, item in enumerate(color_data):
         color = item['color']
         html += f"""            <tr>
-                <td class="numbers-cell">{i+1}</td>
+                <td class="numbers-cell">{i + 1}</td>
                 <td class="color-cell" style="background-color: rgb{color};"></td>
             </tr>
 """
