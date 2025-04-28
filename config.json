@@ -1,0 +1,6 @@
+{
+    "input_image": "X:\\temp\\balloon.jpg",
+    "min_colors": "4",
+    "num_colors": "10",
+    "min_area": "0.0004"
+}
